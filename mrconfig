@@ -1,11 +1,11 @@
-[car_math]
+[lib/car_math]
 checkout = git clone 'git@github.com:mx-car/car_math.git' 'car_math'
 
-[car_bldc]
+[lib/car_bldc]
 checkout = git clone 'git@github.com:mx-car/car_bldc.git' 'car_bldc'
 
-[car_encoder]
+[lib/car_encoder]
 checkout = git clone 'git@github.com:mx-car/car_encoder.git' 'car_encoder'
 
-[car_time]
+[lib/car_time]
 checkout = git clone 'git@github.com:mx-car/car_time.git' 'car_time'
