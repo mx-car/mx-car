@@ -32,6 +32,8 @@ car::bldc::Motor motor1(std::array<uint8_t, 3>({28, 8, 25}),
                         std::array<uint8_t, 3>({5, 6, 9}),
                         std::array<uint8_t, 3>({A15, A16, A17}), 14, car::math::Direction::COUNTERCLOCKWISE);
 int loop_count = 0;
+size_t delay_count = 0;
+car::com::objects::Array16SC8 delays;
 
 std::array<car::math::AngleDeg, 2> motor0_flux_offset({-65, -65 - 90});
 std::array<car::math::AngleDeg, 2> motor1_flux_offset({-80 + 90, -80});
@@ -48,7 +50,7 @@ car::com::mc::Interface msg_tx;   				/// object to hande the serial communicati
 car::com::mc::Interface msg_rx;   				/// object to hande the serial communication
 car::time::CycleRate cycle_rate(1000);    /// object for a constant cycle control
 car::com::objects::Text text;             /// object to send
-car::com::objects::AckermannRearWheelDrive *ackermann_command = NULL;              
+car::com::objects::AckermannState *ackermann_state = NULL;              
 car::com::objects::AckermannConfig *ackermann_config = NULL;             
 
 // the setup routine runs once when you press reset:
@@ -74,11 +76,16 @@ void setup()
               std::bind(&car::bldc::Driver::couple_pwm, &driver, std::placeholders::_1, std::placeholders::_2));
   motor1.couple(true);
   motor1.set_power(0);
+    delays.clear();
 }
 // the loop routine runs over and over again forever:
 void loop()
 {
-  if (cycle_pwm.passed())
+  if(delay_count >= delays.size()) {
+    delay_count = 0;
+    delays.clear();
+  }
+  delays[delay_count++] = cycle_pwm.wait();
   {
     motor0.update_pwm();
     motor1.update_pwm();
@@ -88,10 +95,9 @@ void loop()
     motor0.update_control();
     motor1.update_control();
 
-    if(ackermann_command != NULL){
-      float target = 0.1;
-      motor0.set_power(motor0_pid.update(ackermann_command->v[ackermann_command->LEFT], motor0.rps()));
-      motor1.set_power(motor1_pid.update(ackermann_command->v[ackermann_command->RIGHT], motor1.rps()));
+    if(ackermann_state != NULL){
+      motor0.set_power(motor0_pid.update(ackermann_state->v[ackermann_state->LEFT], motor0.rps()));
+      motor1.set_power(motor1_pid.update(ackermann_state->v[ackermann_state->RIGHT], motor1.rps()));
     }
   }
   if(cycle_com.passed() > 0){
@@ -100,9 +106,11 @@ void loop()
         if(!text.empty()) {
           msg_tx.push_object ( Object (text, TYPE_TEXT ) );
         }
-        if(ackermann_command != NULL){
-           msg_tx.push_object(Object(*ackermann_command, TYPE_ACKERMANN_REAR_WHEEL_DRIVE));
+        if(ackermann_state != NULL){
+           msg_tx.push_object(Object(*ackermann_state, TYPE_ACKERMANN_STATE));
         }
+        msg_tx.push_object(Object(delays, TYPE_ARRAY16SC8));
+        
         msg_tx.send();				        /// sends the message
     }
     if ( msg_rx.receive() ) {			/// check for messages
@@ -117,9 +125,9 @@ void loop()
                 if(ackermann_config == NULL) ackermann_config = new car::com::objects::AckermannConfig;
                 object.get(*ackermann_config);
                 break;
-            case TYPE_ACKERMANN_REAR_WHEEL_DRIVE: 	/// case sync object
-                if(ackermann_command == NULL) ackermann_command = new car::com::objects::AckermannRearWheelDrive;
-                object.get(*ackermann_command);
+            case TYPE_ACKERMANN_STATE: 	/// case sync object
+                if(ackermann_state == NULL) ackermann_state = new car::com::objects::AckermannState;
+                object.get(*ackermann_state);
                 break;
             default:/// case unkown type
                 text.write ( "Unknown type received" );
