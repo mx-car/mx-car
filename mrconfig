@@ -15,3 +15,6 @@ checkout = git clone 'git@github.com:mx-car/car_model.git' 'car_model'
 
 [lib/car_time]
 checkout = git clone 'git@github.com:mx-car/car_time.git' 'car_time'
+
+[lib/mx_objects]
+checkout = git clone 'git@github.com:mx-robotics/mx_objects.git' 'mx_objects'
