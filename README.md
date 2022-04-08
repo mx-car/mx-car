@@ -2,6 +2,7 @@
 ## subrepositiories
 In order to clone the subrepositiories run:
 ```
+# sed -i 's/git@github.com:/https:\/\/github.com\//g' mrconfig
 mr -c mrconfig update
 ```
 ## Compilation
